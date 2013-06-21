@@ -1,4 +1,6 @@
-thoughtless
-===========
+Thoughtless Slide Framework.
+============================
 
-Thoughtless Slide Framework. Don't Make Me Think! (Or code.)
+Don't Make Me Think! (Or code.)
+
+Just focus on your presentation content.
