@@ -10,9 +10,14 @@ Don't make me think!
   Making HTML5 slides should be simple.
   Less coding, more writing.
 
-  View Source to see how you compose slides.
+  Please hit View Source
+  to see how these slides are composed.
 
   Just write the damn content.
+
+  Of course, you <em>can</em> use <strong>HTML</strong> and <u>CSS</u> if you want to.
+  <span style='font-size: 0.7em; opacity: 0.5;'>(I'm just saying you probably <em>don't</em>
+  want to, most of the time.)</span>
 
   Separate each slide by an empty line.
 
@@ -48,7 +53,7 @@ Ideas? michael@mahemoff.com
   .slide {
     width: 100%;
     height: 100%;
-    display: inline-block;
+    /* display: inline-block; */
     font-size: 5em;
     position: relative; /* only used for parent, not main, text */
   }
@@ -94,12 +99,12 @@ Ideas? michael@mahemoff.com
   $(function() {
     var spec = $('.presentation-spec').text()
     slideSpecs = spec.split(/\s*\n\s*\n+/g)
-    console.log(slideSpecs);
+    //console.log(slideSpecs);
     $('.presentation-display').append(_.map(slideSpecs, function(slideSpec) { return makeSlideElement(slideSpec) } ));
     Mousetrap.bind(['j', 'space'], next);
     Mousetrap.bind(['k', 'backspace'], prev);
-    //Mousetrap.bind('backspace', prev);
-    bodyHeight = $('body').height()
+    bodyHeight = $('.presentation-display').height()
+    console.log(bodyHeight);
   });
   
   var lastLeadingWhitespaceLength = 0;
