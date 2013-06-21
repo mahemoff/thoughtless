@@ -13,11 +13,14 @@ Don't make me think!
   Please hit View Source
   to see how these slides are composed.
 
-  Just write the damn content.
+  Just write the damn words.
 
   Of course, you <em>can</em> use <strong>HTML</strong> and <u>CSS</u> if you want to.
-  <span style='font-size: 0.7em; opacity: 0.5;'>(I'm just saying you probably <em>don't</em>
-  want to, most of the time.)</span>
+  <span style='font-size: 0.7em; opacity: 0.5;'>(You probably <em>don't</em> want to, often.)</span>
+
+  http://i.imgur.com/zLHulvy.jpg
+  Images? Just write the damn URL.
+  Auto-stretched with aspect ratio preserved.
 
   Separate each slide by an empty line.
 
@@ -67,6 +70,14 @@ Ideas? michael@mahemoff.com
     display:table-cell;
     vertical-align:middle;
   }
+  .slide .image {
+    background-size: 100%;
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    margin: 0 auto;
+    width: 80%;
+    height: 10em;
+  }
   .slide1 {
     background: #f44;
     color: #eee;
@@ -112,8 +123,11 @@ Ideas? michael@mahemoff.com
   var lastTitle = '';
   function makeSlideElement(slideSpec) {
 
-    matches = slideSpec.match(/^([\s\t]*)([\s\S]*)/);
-    leadingWhitespaceLength = matches[1].length;
+    matches = slideSpec.match(/^([\s\t]*)(\S+(?:jpg|png|gif))?([\s\S]*)/);
+    var leadingWhitespaceLength = matches[1].length;
+    var imageURL = matches[2];
+    var content = matches[3];
+
     if (leadingWhitespaceLength > lastLeadingWhitespaceLength) {
       parentText = lastTitle;
       slideLevel++;
@@ -124,10 +138,13 @@ Ideas? michael@mahemoff.com
     }
     lastLeadingWhitespaceLength = leadingWhitespaceLength;
 
-    var content = matches[2];
+    imageHTML = '';
+    if (imageURL)
+      imageHTML = "<div class='image' style='background-image:url(\""+imageURL+"\")'></div>"
+
     lastTitle = content.replace(/\n.+$/, '');
     content = content.replace(/\n/g,'<br/>');
-    return $('<div class="slide slide'+slideLevel+'" />').html($("<div class='parent-text'>"+parentText+"</div><div class='slide-wrapper'><div class='text'>"+content+"</div></div>"));
+    return $('<div class="slide slide'+slideLevel+'" />').html($("<div class='parent-text'>"+parentText+"</div><div class='slide-wrapper'><div class='text'>"+imageHTML + content+"</div></div>"));
   }
 
   function next() {
