@@ -108,14 +108,20 @@ Ideas? michael@mahemoff.com
   var slideIndex = 1;
   var slideLevel = 1;
   $(function() {
+
     var spec = $('.presentation-spec').text()
     slideSpecs = spec.split(/\s*\n\s*\n+/g)
+
     //console.log(slideSpecs);
     $('.presentation-display').append(_.map(slideSpecs, function(slideSpec) { return makeSlideElement(slideSpec) } ));
     Mousetrap.bind(['j', 'space'], next);
     Mousetrap.bind(['k', 'backspace'], prev);
     bodyHeight = $('.presentation-display').height()
     console.log(bodyHeight);
+
+    slideIndex = parseInt(document.location.hash.substr(1)) || 1;
+    showCurrent();
+
   });
   
   var lastLeadingWhitespaceLength = 0;
