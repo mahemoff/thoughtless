@@ -32,9 +32,6 @@
       We need to go deeper.
       Multi-level slide hierarchy.
 
-    Everything in one file.
-    So you can mail it and stuff.
-    :
     No more zipfile/directory shuffling.
 
     Future: Images, Markdown, templates Coffee/Less rewrite, offlinable single-file generator.
@@ -49,7 +46,7 @@
 <!-- ------------------------------------------------------------------------ -->
 
 <script type='text/template' class='slideTemplate'>
-<div class="slide slide<%= slideLevel %>">
+<div class="slide slide<%= slide.level %>">
   <% parent = slide.parent %>
   <% if (parent && parent.title && parent.title.length) { %>
     <div class='parent-title'><%= parent.title %></div>
@@ -180,6 +177,14 @@ body
 
 window.log = -> console.log.apply(console, arguments)
 
+window.parseStylus = ->
+  stylusSource = $.trim($("style[type='text/stylus']").html())
+  stylus(stylusSource).render (err, css) ->
+    if err
+      document.writeln "Stylus error: <pre>" + err + "</pre>"
+    else
+      $("<style />").html(css).appendTo "body"
+
 </script>
 
 <script type='text/coffeescript'>
@@ -188,77 +193,118 @@ window.log = -> console.log.apply(console, arguments)
 ## Closure-scoped globals
 ##############################################################################
 
-slideTemplate = lastTitle = lastSlide = lastLeadingWhitespaceLength = bodyHeight = slideSpecs = null
 slideIndex = 1
 window.slideLevel = 0 # will become 1 immediately
 
 ##############################################################################
-## Slide model
+## Models
 ##############################################################################
 
+class Presentation
+
+  # http://en.wikipedia.org/wiki/Composite_pattern
+  constructor: (@element, spec) ->
+
+    @_buildSlides(spec)
+    @element.html @_html()
+
+    @_setupUserInput()
+    @_setupWindowResize()
+
+  # Public
+
+  next: ->
+    @index++  if @index < @slides.length
+    @showCurrent()
+    false
+
+  prev: ->
+    @index--  if @index > 1
+    @showCurrent()
+    false
+
+  showCurrent: ->
+    document.location.hash = @index
+    $(".presentation-display").css top: (-@index + 1) * @element.height()
+    $(".presentation-display").html $(".presentation-display").html()
+
+  _html: ->
+    (@slides.map (slide) -> slide.html()).join('')
+
+  # Private
+
+  _buildSlides: (spec) ->
+    spec = spec.replace(/\s+$/, '')
+    slideSpecs = spec.split(/\s*\n\s*\n+/g)
+    @index = parseInt(document.location.hash.substr(1)) or 1
+    @slides = []
+    for slideSpec in slideSpecs
+      slide = new Slide(slideSpec, slide)
+      @slides.push(slide)
+
+  _setupUserInput: ->
+    Mousetrap.bind ["j", "space"], => @next()
+    Mousetrap.bind ["k", "backspace"], => @prev()
+    @element.on 'mousedown', (ev) =>
+      @_handleMouseDown(ev)
+      @mouseDownTimer = setInterval( (=> @_handleMouseDown(ev)), 500)
+    @element.on 'mouseup', => clearTimeout(@mouseDownTimer)
+
+  _setupWindowResize: ->
+    $(window).resize => @showCurrent()
+
+  _handleMouseDown: (ev)  =>
+    if ev.pageY > @element.height()/2 then @next() else @prev()
+
 class Slide
-  constructor: (@spec) ->
-    @previous = lastSlide
+
+  # Public
+
+  constructor: (spec, previous) ->
+
+    @_extractContent(spec)
+    @_calculateParentAndLevel(previous)
+    previousSlide = this
+
+  html: ->
+    TEMPLATE(slide: this)
+
+  # Private
+
+  TEMPLATE = _.template $('.slideTemplate').html()
+
+  _extractContent: (spec) ->
     matches = spec.match(/^([\s\t]*)(\S+(?:jpg|png|gif))?([\s\S]*)/)
-    leadingWhitespaceLength = matches[1].length
+    @specLeadingWhitespaceLength = matches[1].length
     @imageURL = matches[2]
     @content = matches[3]
-    if !lastLeadingWhitespaceLength || (leadingWhitespaceLength > lastLeadingWhitespaceLength)
-      @parent = (if @previous then @previous)
-      slideLevel++
-    else if leadingWhitespaceLength < lastLeadingWhitespaceLength
-      @parent = @previous.parent.parent
-      slideLevel--
-    else
-      @parent = @previous.parent
-    lastLeadingWhitespaceLength = leadingWhitespaceLength
     imageHTML = ""
     @title = @content.replace(/^\s*(.+)\n.*$/, "$1")
     @content = "<p>" + @content.replace(/\n\s*:\s*\n/g, "<p>")
     @content = @content.replace(/\n/g, "<br/>")
-    lastSlide = this
-  html: -> slideTemplate slide: this
+
+  _calculateParentAndLevel: (previous) ->
+    if !previous
+      @parent = null
+      @level = 1
+    else if @specLeadingWhitespaceLength > previous.specLeadingWhitespaceLength
+      @parent = previous
+      @level = previous.level+1
+    else if @specLeadingWhitespaceLength < previous.specLeadingWhitespaceLength
+      @parent = previous.parent.parent
+      @level = previous.level-1
+    else
+      @parent = previous.parent
+      @level = previous.level
 
 ##############################################################################
 ## Presentation
 ##############################################################################
 
-next = ->
-  slideIndex++  if slideIndex < slideSpecs.length
-  showCurrent()
-  false
-
-prev = ->
-  slideIndex--  if slideIndex > 1
-  showCurrent()
-  false
-
-showCurrent = ->
-  document.location.hash = slideIndex
-  $(".presentation-display").css top: (-slideIndex + 1) * bodyHeight
-
 $ ->
 
-  stylusSource = $.trim($("style[type='text/stylus']").html())
-  stylus(stylusSource).render (err, css) ->
-    if err
-      document.writeln "Stylus error: <pre>" + err + "</pre>"
-      #console.error 'Stylus compilation error', arguments
-    else
-      $("<style />").html(css).appendTo "body"
-
-  spec = $(".presentation-spec").text().replace(/\s+$/, '')
-  slideSpecs = spec.split(/\s*\n\s*\n+/g)
-  slideTemplate = _.template $('.slideTemplate').html()
-  slideEls = (new Slide(slideSpec).html() for slideSpec in slideSpecs)
-  $(".presentation-display").append(slideEls).show()
-
-  Mousetrap.bind ["j", "space"], next
-  Mousetrap.bind ["k", "backspace"], prev
-
-  #bodyHeight = $(".presentation-display").height()
-  bodyHeight = $(window).height()
-  slideIndex = parseInt(document.location.hash.substr(1)) or 1
-  showCurrent()
+  parseStylus()
+  presentation = new Presentation $('.presentation-display'), $(".presentation-spec").text()
+  presentation.showCurrent()
 
 </script>
